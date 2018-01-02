@@ -1,2 +1,2 @@
 #!/bin/bash
-geth --datadir node2 --networkid 1 --port 30304 --bootnodes enode://174998c98c57e902e04069c1f6ce9cd85605849b51343c3ffe990ccb953a8ca36967315dac76b2e6cb0e3abb697728e907cc043a0a7e95fcbc5abdf3bf8ab8ac@127.0.0.1:30303
+geth --datadir node2 --networkid 1 --port 30304 --bootnodes enode://669c9e350e8d254ee2fc5434b55662badecbcc59c51cda41eb113c1a0722a44654a4cd67d9d400ec93b065392076dc3da43471a706f58b742d434b5315ffb2d8@127.0.0.1:30303
