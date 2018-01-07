@@ -1,53 +1,64 @@
 package main
 
-import "fmt"
 import (
-	"github.com/ethereum/go-ethereum/ethclient"
-    "github.com/ethereum/go-ethereum/core/types"
-	"log"
 	"context"
+	"fmt"
+	"log"
 	"time"
+
+	"os"
+
+	"os/signal"
+	"syscall"
+
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethclient"
 )
 
-func main()  {
-    var  quit chan int
-	newHead := make(chan *types.Header, 10)
-	ctx, _ := context.WithTimeout(context.Background(), 3 * time.Second)
+func main() {
 
-	fmt.Println("Hello World")
-	//conn, err := ethclient.Dial("/home/versus/geth/private-chain-data-node1/geth.ipc")
+	sig := make(chan os.Signal, 1)
+	done := make(chan bool, 1)
+	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+
+	newHead := make(chan *types.Header, 10)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	fmt.Println("ethagent v 0.0.1")
 	conn, err := ethclient.Dial("/home/versus/geth/node3/geth.ipc")
-	//conn, err := ethclient.Dial("http://127.0.0.1:8080")
 	if err != nil {
 		log.Fatalf("Failed to connect to the Ethereum client: %v", err)
 	}
 
-	header , err := conn.HeaderByNumber(ctx, nil)
+	header, err := conn.HeaderByNumber(ctx, nil)
 	if err != nil {
 		log.Fatalf("Failed get HeaderByNumber: %v", err)
 	}
 
 	fmt.Println(header.Number)
 
-	sub,err := conn.SubscribeNewHead(ctx, newHead)
+	sub, err := conn.SubscribeNewHead(ctx, newHead)
 	if err != nil {
 		log.Fatalf("Failed : SubscribeNewHead %v", err)
 	}
 
-	for {
-		select {
-		case  <-newHead:
-			block := <-newHead
-			fmt.Println(block)
-		case <-quit:
-			fmt.Println("quit")
-			return
+	go func() {
+		for {
+			select {
+			case <-newHead:
+				block := <-newHead
+				fmt.Println(block)
+			case <-sig:
+				s := <-sig
+				fmt.Println(s)
+				done <- true
+				return
+			}
 		}
-	}
+	}()
 
-
+	<-done
 	sub.Unsubscribe()
-
-
 
 }
