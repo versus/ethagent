@@ -11,17 +11,54 @@ import (
 	"os/signal"
 	"syscall"
 
+	"bytes"
+	"encoding/json"
+	"flag"
+	"io/ioutil"
+	"math/big"
+	"net/http"
+
+	"github.com/BurntSushi/toml"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/BurntSushi/toml"
-	"flag"
 )
 
 type Config struct {
-    Endpoint string
-    Hostname string
-    IPCPath	 string `toml:"ipcpath"`
-    Backup 	 bool
+	Endpoint string `json:"-"`
+	Hostname string `json:"hostname"`
+	IPCPath  string `toml:"ipcpath" json:"-"`
+	Backup   bool   `json:"backup"`
+	Block    big.Int
+}
+
+var ctx context.Context
+var conf Config
+
+func post(url string, jsonData string) string {
+	var jsonStr = []byte(jsonData)
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
+	req.Header.Set("Content-Type", "application/json")
+	req = req.WithContext(ctx)
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Println(err.Error())
+	}
+	defer resp.Body.Close()
+
+	fmt.Println("response Status:", resp.Status)
+	fmt.Println("response Headers:", resp.Header)
+	body, _ := ioutil.ReadAll(resp.Body)
+	return string(body)
+}
+
+func sendNewBlock() {
+	res2B, err := json.Marshal(&conf)
+	if err != nil {
+		log.Fatalf("Failed to convert Conf to json", err.Error())
+	}
+	log.Println(string(res2B))
 }
 
 func main() {
@@ -35,10 +72,11 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-
+	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
 	log.Println("ethagent v 0.0.1")
-	var conf Config
+
 	if _, err := toml.DecodeFile(*flagConfigFile, &conf); err != nil {
 		log.Fatalln("Error parse config.toml", err.Error())
 	}
@@ -65,7 +103,9 @@ func main() {
 			select {
 			case <-newHead:
 				block := <-newHead
-				fmt.Println(block)
+				conf.Block = *block.Number
+				fmt.Println(block.Number)
+				sendNewBlock()
 			case <-sig:
 				s := <-sig
 				fmt.Println(s)
