@@ -13,10 +13,20 @@ import (
 
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/BurntSushi/toml"
+	"flag"
 )
 
-func main() {
+type Config struct {
+    Endpoint string
+    Hostname string
+    IPCPath	 string `toml:"ipcpath"`
+    Backup 	 bool
+}
 
+func main() {
+	flagConfigFile := flag.String("c", "./config.toml", "config: path to config file")
+	flag.Parse()
 	sig := make(chan os.Signal, 1)
 	done := make(chan bool, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
@@ -25,8 +35,15 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	fmt.Println("ethagent v 0.0.1")
-	conn, err := ethclient.Dial("/home/versus/geth/node3/geth.ipc")
+
+
+	log.Println("ethagent v 0.0.1")
+	var conf Config
+	if _, err := toml.DecodeFile(*flagConfigFile, &conf); err != nil {
+		log.Fatalln("Error parse config.toml", err.Error())
+	}
+
+	conn, err := ethclient.Dial(conf.IPCPath)
 	if err != nil {
 		log.Fatalf("Failed to connect to the Ethereum client: %v", err)
 	}
