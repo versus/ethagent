@@ -28,7 +28,7 @@ type Config struct {
 	Hostname string `json:"hostname"`
 	IPCPath  string `toml:"ipcpath" json:"-"`
 	State    string `json:"state"`
-	Block    big.Int
+	Block    big.Int `json:"block"`
 }
 
 var ctx context.Context
@@ -59,6 +59,7 @@ func sendNewBlock() {
 		log.Fatalf("Failed to convert Conf to json", err.Error())
 	}
 	log.Println(string(res2B))
+	post(conf.Endpoint, string(res2B))
 }
 
 func main() {
