@@ -27,7 +27,7 @@ type Config struct {
 	Endpoint string `json:"-"`
 	Hostname string `json:"hostname"`
 	IPCPath  string `toml:"ipcpath" json:"-"`
-	Backup   bool   `json:"backup"`
+	State    string `json:"state"`
 	Block    big.Int
 }
 
@@ -69,10 +69,8 @@ func main() {
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 
 	newHead := make(chan *types.Header, 10)
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
 
-	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	log.Println("ethagent v 0.0.1")
@@ -104,7 +102,6 @@ func main() {
 			case <-newHead:
 				block := <-newHead
 				conf.Block = *block.Number
-				fmt.Println(block.Number)
 				sendNewBlock()
 			case <-sig:
 				s := <-sig
