@@ -31,17 +31,18 @@ type Config struct {
 	Block    big.Int `json:"block"`
 }
 
-
 var conf Config
 
-func post(url string, jsonData string) string {
+func sendNewBlock() {
+	jsonStr, err := json.Marshal(&conf)
+	if err != nil {
+		log.Fatalf("Failed to convert Conf to json", err.Error())
+	}
 	var cancel context.CancelFunc
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	var jsonStr = []byte(jsonData)
-
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
+	req, err := http.NewRequest("POST", conf.Endpoint, bytes.NewBuffer(jsonStr))
 	req.Header.Set("Content-Type", "application/json")
 	req = req.WithContext(ctx)
 	client := &http.Client{}
@@ -53,18 +54,8 @@ func post(url string, jsonData string) string {
 
 	fmt.Println("response Status:", resp.Status)
 	fmt.Println("response Headers:", resp.Header)
-	fmt.Println("responce Body:", resp.Body)
 	body, _ := ioutil.ReadAll(resp.Body)
-	return string(body)
-}
-
-func sendNewBlock() {
-	res2B, err := json.Marshal(&conf)
-	if err != nil {
-		log.Fatalf("Failed to convert Conf to json", err.Error())
-	}
-	log.Println(string(res2B))
-	post(conf.Endpoint, string(res2B))
+	log.Println("response Body ",string(body))
 }
 
 func main() {
