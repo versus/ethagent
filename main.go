@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"time"
 
 	"os"
 
@@ -49,6 +48,7 @@ func post(url string, jsonData string) string {
 
 	fmt.Println("response Status:", resp.Status)
 	fmt.Println("response Headers:", resp.Header)
+	fmt.Println("responce Body:", resp.Body)
 	body, _ := ioutil.ReadAll(resp.Body)
 	return string(body)
 }
@@ -70,9 +70,7 @@ func main() {
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 
 	newHead := make(chan *types.Header, 10)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	ctx = context.Background()
 
 	log.Println("ethagent v 0.0.1")
 
