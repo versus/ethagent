@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"os"
 
@@ -30,10 +31,14 @@ type Config struct {
 	Block    big.Int `json:"block"`
 }
 
-var ctx context.Context
+
 var conf Config
 
 func post(url string, jsonData string) string {
+	var cancel context.CancelFunc
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
 	var jsonStr = []byte(jsonData)
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
@@ -70,7 +75,7 @@ func main() {
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 
 	newHead := make(chan *types.Header, 10)
-	ctx = context.Background()
+
 
 	log.Println("ethagent v 0.0.1")
 
@@ -82,7 +87,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to connect to the Ethereum client: %v", err)
 	}
-
+    ctx := context.Background()
 	header, err := conn.HeaderByNumber(ctx, nil)
 	if err != nil {
 		log.Fatalf("Failed get HeaderByNumber: %v", err)
