@@ -1,4 +1,4 @@
 endpoint = "http://127.0.0.1:8545/api/v1/newblock"
 hostname = "alpha"
 ipcpath  = "./testnetwork/node1/geth.ipc"
-state    = "up"  # "up", "down", "backup"
+state    = "up"  # "up", "suspend", "backup"

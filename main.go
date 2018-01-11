@@ -24,16 +24,22 @@ import (
 )
 
 type Config struct {
-	Endpoint string `json:"-"`
-	Hostname string `json:"hostname"`
-	IPCPath  string `toml:"ipcpath" json:"-"`
-	State    string `json:"state"`
+	Endpoint string  `json:"-"`
+	Hostname string  `json:"hostname"`
+	IPCPath  string  `toml:"ipcpath" json:"-"`
+	State    string  `json:"state"`
 	Block    big.Int `json:"block"`
 }
 
 var conf Config
 
+const (
+	Version = "v0.0.1"
+	Author  = " by Valentyn Nastenko [versus.dev@gmail.com]"
+)
+
 func sendNewBlock() {
+	//TODO: send new block to multihost
 	jsonStr, err := json.Marshal(&conf)
 	if err != nil {
 		log.Fatalf("Failed to convert Conf to json", err.Error())
@@ -55,7 +61,8 @@ func sendNewBlock() {
 	fmt.Println("response Status:", resp.Status)
 	fmt.Println("response Headers:", resp.Header)
 	body, _ := ioutil.ReadAll(resp.Body)
-	log.Println("response Body ",string(body))
+	log.Println("response Body ", string(body))
+	//TODO: parse and use last block from server
 }
 
 func main() {
@@ -67,8 +74,7 @@ func main() {
 
 	newHead := make(chan *types.Header, 10)
 
-
-	log.Println("ethagent v 0.0.1")
+	log.Println("ethagent ", Version, Author)
 
 	if _, err := toml.DecodeFile(*flagConfigFile, &conf); err != nil {
 		log.Fatalln("Error parse config.toml", err.Error())
@@ -78,7 +84,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to connect to the Ethereum client: %v", err)
 	}
-    ctx := context.Background()
+	ctx := context.Background()
 	header, err := conn.HeaderByNumber(ctx, nil)
 	if err != nil {
 		log.Fatalf("Failed get HeaderByNumber: %v", err)
