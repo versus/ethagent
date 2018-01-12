@@ -29,6 +29,7 @@ type Config struct {
 	IPCPath  string  `toml:"ipcpath" json:"-"`
 	State    string  `json:"state"`
 	Block    big.Int `json:"block"`
+	Token	string	 `json:"token"`
 }
 
 var conf Config
