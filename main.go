@@ -21,15 +21,16 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"sync"
 )
 
 type Config struct {
 	Endpoint string  `json:"-"`
-	Hostname string  `json:"hostname"`
 	IPCPath  string  `toml:"ipcpath" json:"-"`
 	State    string  `json:"state"`
 	Block    big.Int `json:"block"`
-	Token	string	 `json:"token"`
+	Token    string  `json:"token"`
+	Mutex 	 sync.Mutex `json:"-"`
 }
 
 var conf Config
@@ -39,31 +40,42 @@ const (
 	Author  = " by Valentyn Nastenko [versus.dev@gmail.com]"
 )
 
-func sendNewBlock() {
+func sendNewBlock(number big.Int) {
 	//TODO: send new block to multihost
-	jsonStr, err := json.Marshal(&conf)
-	if err != nil {
-		log.Fatalf("Failed to convert Conf to json", err.Error())
-	}
+
 	var cancel context.CancelFunc
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
+	conf.Mutex.Lock()
+	conf.Block = number
+	jsonStr, err := json.Marshal(&conf)
+	if err != nil {
+		log.Fatalf("Failed to convert Conf to json", err.Error())
+	}
+	conf.Mutex.Unlock()
+
 	req, err := http.NewRequest("POST", conf.Endpoint, bytes.NewBuffer(jsonStr))
+	if err != nil {
+		log.Println("error request to endpoint ",conf.Endpoint, err.Error())
+		return
+	}
 	req.Header.Set("Content-Type", "application/json")
 	req = req.WithContext(ctx)
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Println(err.Error())
+		log.Println("error client do ",err.Error())
+		return
 	}
-	defer resp.Body.Close()
+	resp.Body.Close()
 
 	fmt.Println("response Status:", resp.Status)
 	fmt.Println("response Headers:", resp.Header)
 	body, _ := ioutil.ReadAll(resp.Body)
 	log.Println("response Body ", string(body))
 	//TODO: parse and use last block from server
+	resp.Body.Close()
 }
 
 func main() {
@@ -71,7 +83,7 @@ func main() {
 	flag.Parse()
 	sig := make(chan os.Signal, 1)
 	done := make(chan bool, 1)
-	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
 
 	newHead := make(chan *types.Header, 10)
 
@@ -103,8 +115,7 @@ func main() {
 			select {
 			case <-newHead:
 				block := <-newHead
-				conf.Block = *block.Number
-				sendNewBlock()
+				go sendNewBlock(*block.Number)
 			case <-sig:
 				s := <-sig
 				fmt.Println(s)
