@@ -1,4 +1,5 @@
 endpoint = "http://127.0.0.1:8545/api/v1/newblock"
 ipcpath  = "./testnetwork/node1/geth.ipc"
 state    = "up"  # "up", "suspend", "backup"
-token    = "aaaaaa"
+token    = "Q!@W#E$R%T^Y"
+key      = "7f81c777667e559204b2794a846976b39cfe8248c5f62da5aa977926d8a42349"

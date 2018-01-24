@@ -18,19 +18,21 @@ import (
 	"math/big"
 	"net/http"
 
+	"sync"
+
 	"github.com/BurntSushi/toml"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"sync"
 )
 
 type Config struct {
-	Endpoint string  `json:"-"`
-	IPCPath  string  `toml:"ipcpath" json:"-"`
-	State    string  `json:"state"`
-	Block    big.Int `json:"block"`
-	Token    string  `json:"token"`
-	Mutex 	 sync.Mutex `json:"-"`
+	Endpoint  string     `json:"-"`
+	IPCPath   string     `toml:"ipcpath" json:"-"`
+	State     string     `json:"state"`
+	Block     big.Int    `json:"block"`
+	Token     string     `json:"token"`
+	AccessKey string     `json:"-"`
+	Mutex     sync.Mutex `json:"-"`
 }
 
 var conf Config
@@ -57,7 +59,7 @@ func sendNewBlock(number big.Int) {
 
 	req, err := http.NewRequest("POST", conf.Endpoint, bytes.NewBuffer(jsonStr))
 	if err != nil {
-		log.Println("error request to endpoint ",conf.Endpoint, err.Error())
+		log.Println("error request to endpoint ", conf.Endpoint, err.Error())
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
@@ -65,7 +67,7 @@ func sendNewBlock(number big.Int) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Println("error client do ",err.Error())
+		log.Println("error client do ", err.Error())
 		return
 	}
 	resp.Body.Close()
@@ -104,7 +106,7 @@ func main() {
 	}
 
 	fmt.Println(header.Number)
-
+	auth()
 	sub, err := conn.SubscribeNewHead(ctx, newHead)
 	if err != nil {
 		log.Fatalf("Failed : SubscribeNewHead %v", err)
