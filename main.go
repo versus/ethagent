@@ -26,20 +26,26 @@ import (
 )
 
 type Config struct {
-	Endpoint  string     `json:"-"`
+	Server    string     `toml:"server" json:"-"`
 	IPCPath   string     `toml:"ipcpath" json:"-"`
 	State     string     `json:"state"`
 	Block     big.Int    `json:"block"`
 	Token     string     `json:"token"`
-	AccessKey string     `json:"-"`
+	AccessKey string     `toml:"key" json:"-"`
 	Mutex     sync.Mutex `json:"-"`
 }
 
-var conf Config
+var (
+	conf         Config
+	addrNewblock string
+	addrAuth     string
+)
 
 const (
-	Version = "v0.0.1"
-	Author  = " by Valentyn Nastenko [versus.dev@gmail.com]"
+	Version           = "v0.0.1"
+	Author            = " by Valentyn Nastenko [versus.dev@gmail.com]"
+	endpoint_newblock = "/api/v1/newblock"
+	endpoint_auth     = "/api/v1/auth"
 )
 
 func sendNewBlock(number big.Int) {
@@ -57,9 +63,9 @@ func sendNewBlock(number big.Int) {
 	}
 	conf.Mutex.Unlock()
 
-	req, err := http.NewRequest("POST", conf.Endpoint, bytes.NewBuffer(jsonStr))
+	req, err := http.NewRequest("POST", addrNewblock, bytes.NewBuffer(jsonStr))
 	if err != nil {
-		log.Println("error request to endpoint ", conf.Endpoint, err.Error())
+		log.Println("error request to endpoint ", addrNewblock, err.Error())
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
@@ -72,17 +78,27 @@ func sendNewBlock(number big.Int) {
 	}
 	resp.Body.Close()
 
-	fmt.Println("response Status:", resp.Status)
-	fmt.Println("response Headers:", resp.Header)
-	body, _ := ioutil.ReadAll(resp.Body)
-	log.Println("response Body ", string(body))
+	if *flagDebug {
+		fmt.Println("response Status:", resp.Status)
+		fmt.Println("response Headers:", resp.Header)
+		body, _ := ioutil.ReadAll(resp.Body)
+		log.Println("response Body ", string(body))
+	}
 	//TODO: parse and use last block from server
 	resp.Body.Close()
 }
 
 func main() {
 	flagConfigFile := flag.String("c", "./config.toml", "config: path to config file")
+	gnrToken := flag.Bool("gentoken", false, "config: generate token for agents")
+	flagDebug := flag.Bool("vvv", false, "runtime: output debug messages ")
 	flag.Parse()
+
+	if *gnrToken {
+		fmt.Println("Token is ", GenToken(16))
+		os.Exit(0)
+	}
+
 	sig := make(chan os.Signal, 1)
 	done := make(chan bool, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
@@ -93,6 +109,13 @@ func main() {
 
 	if _, err := toml.DecodeFile(*flagConfigFile, &conf); err != nil {
 		log.Fatalln("Error parse config.toml", err.Error())
+	}
+
+	addrNewblock = fmt.Sprintf("%s%s", conf.Server, endpoint_newblock)
+	addrAuth = fmt.Sprintf("%s%s", conf.Server, endpoint_auth)
+	if *flagDebug {
+		log.Println("addrNewblock is ", addrNewblock)
+		log.Println("addrAuth is ", addrAuth)
 	}
 
 	conn, err := ethclient.Dial(conf.IPCPath)
@@ -129,5 +152,6 @@ func main() {
 
 	<-done
 	sub.Unsubscribe()
+	os.Exit(0)
 
 }
