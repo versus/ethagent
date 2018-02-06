@@ -89,6 +89,7 @@ func sendNewBlock(number big.Int) {
 }
 
 func main() {
+	// TODO: add prometheus metrics https://stackoverflow.com/questions/37611754/how-to-push-metrics-to-prometheus-using-client-golang
 	flagConfigFile := flag.String("c", "./config.toml", "config: path to config file")
 	gnrToken := flag.Bool("gentoken", false, "config: generate token for agents")
 	flagDebug := flag.Bool("vvv", false, "runtime: output debug messages ")
